@@ -1,0 +1,22 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Shelly Cloud 2",
+        "description": "Connect Home Assistant to Shelly Cloud using your server host, Authorization cloud key and device IDs. Available on https://cloud.shelly.cloud",
+        "data": {
+          "server": "Server host (e.g. shelly-xx-eu.shelly.cloud)",
+          "auth_key": "Authorization cloud key",
+          "device_ids": "Device IDs (comma or newline separated)"
+        }
+      }
+    },
+    "error": {
+      "invalid_server": "Please enter a valid server.",
+      "invalid_auth": "Please enter a valid authorization key.",
+      "no_devices": "Please enter at least one device ID.",
+      "cannot_connect": "Cannot connect to Shelly Cloud server.",
+      "unknown": "Unexpected error."
+    }
+  }
+}
