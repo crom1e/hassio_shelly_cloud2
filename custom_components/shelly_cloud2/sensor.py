@@ -14,11 +14,11 @@ from homeassistant.components.sensor import (
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
     UnitOfEnergy,
-    UnitOfPower,
     UnitOfIlluminance,
+    UnitOfPower,
     UnitOfTemperature,
     UnitOfTime,
-    PERCENTAGE, 
+    PERCENTAGE,
     SIGNAL_STRENGTH_DECIBELS,
 )
 from homeassistant.core import HomeAssistant
@@ -71,7 +71,7 @@ async def async_setup_entry(
                 )
             )
 
-        # Power and energy from meters[0]
+        # Power and energy from meters[0] (typical for relays/plugs)
         meters = status.get("meters")
         if isinstance(meters, list) and meters:
             entities.append(
@@ -98,71 +98,39 @@ async def async_setup_entry(
                     entity_category=None,
                 )
             )
-        
+
         # Additional fields for "sensor" type devices (e.g. door/window)
-
         if dev_type == "sensor":
-
             # Battery percentage
-
             bat = status.get("bat")
-
             if isinstance(bat, dict) and "value" in bat:
-
                 entities.append(
-
                     ShellyCloud2Sensor(
-
                         hub=hub,
-
                         device_id=dev_id,
-
                         kind="battery",
-
                         name_suffix="Battery",
-
                         device_class=SensorDeviceClass.BATTERY,
-
                         state_class=SensorStateClass.MEASUREMENT,
-
                         unit=PERCENTAGE,
-
                         entity_category=None,
-
                     )
-
                 )
 
-
-
             # Illuminance (lux)
-
             lux = status.get("lux")
-
             if isinstance(lux, dict) and "value" in lux:
-
                 entities.append(
-
                     ShellyCloud2Sensor(
-
                         hub=hub,
-
                         device_id=dev_id,
-
                         kind="illuminance",
-
                         name_suffix="Illuminance",
-
                         device_class=SensorDeviceClass.ILLUMINANCE,
-
                         state_class=SensorStateClass.MEASUREMENT,
-
                         unit=UnitOfIlluminance.LUX,
-
                         entity_category=None,
-
                     )
-
                 )
 
         # Wi-Fi RSSI
@@ -280,24 +248,17 @@ class ShellyCloud2Sensor(CoordinatorEntity, SensorEntity):
                 except (TypeError, ValueError):
                     return None
             return None
-                if self._kind == "battery":
 
+        if self._kind == "battery":
             bat = status.get("bat")
-
             if not isinstance(bat, Dict):
-
                 return None
-
             return bat.get("value")
 
         if self._kind == "illuminance":
-
             lux = status.get("lux")
-
             if not isinstance(lux, Dict):
-
                 return None
-
             return lux.get("value")
 
         if self._kind == "rssi":
