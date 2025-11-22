@@ -14,7 +14,6 @@ from homeassistant.components.sensor import (
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
     UnitOfEnergy,
-    UnitOfIlluminance,
     UnitOfPower,
     UnitOfTemperature,
     UnitOfTime,
@@ -128,7 +127,7 @@ async def async_setup_entry(
                         name_suffix="Illuminance",
                         device_class=SensorDeviceClass.ILLUMINANCE,
                         state_class=SensorStateClass.MEASUREMENT,
-                        unit=UnitOfIlluminance.LUX,
+                        unit="lx",
                         entity_category=None,
                     )
                 )
