@@ -31,6 +31,13 @@ from .const import DOMAIN, CONF_DEVICE_IDS
 
 _LOGGER = logging.getLogger(__name__)
 
+def _find_status_block(status: dict, prefix: str) -> dict | None:
+    for k, v in status.items():
+        if k.startswith(prefix) and isinstance(v, dict):
+            return v
+    return None
+
+
 
 async def async_setup_entry(
     hass: HomeAssistant,
@@ -53,10 +60,10 @@ async def async_setup_entry(
         status: Dict[str, Any] = state.get("status", {})
         dev_type = state.get("type")
 
-        # Temperature: present if "temperature" or "tmp.tC" exists
+        
+        temp_block = _find_status_block(status, "temperature:")
         if "temperature" in status or (
-            isinstance(status.get("tmp"), dict) and "tC" in status.get("tmp", {})
-        ):
+            isinstance(status.get("tmp"), dict) and "tC" in status["tmp"]) or (temp_block and "tC" in temp_block):
             entities.append(
                 ShellyCloud2Sensor(
                     hub=hub,
@@ -69,6 +76,22 @@ async def async_setup_entry(
                     entity_category=None,
                 )
             )
+
+        hum_block = _find_status_block(status, "humidity:")
+        if hum_block and "rh" in hum_block:
+            entities.append(
+                ShellyCloud2Sensor(
+                    hub=hub,
+                    device_id=dev_id,
+                    kind="humidity",
+                    name_suffix="Humidity",
+                    device_class=SensorDeviceClass.HUMIDITY,
+                    state_class=SensorStateClass.MEASUREMENT,
+                    unit=PERCENTAGE,
+                    entity_category=None,
+                )
+            )
+
 
         # Power and energy from meters[0] (typical for relays/plugs)
         meters = status.get("meters")
@@ -98,11 +121,24 @@ async def async_setup_entry(
                 )
             )
 
-        # Additional fields for "sensor" type devices (e.g. door/window)
         if dev_type == "sensor":
-            # Battery percentage
+        # Battery percentage (G1: status.bat.value, G3/HTG3: status.devicepower:0.battery.percent)
+            battery_value = None
+            # G1 structure
             bat = status.get("bat")
-            if isinstance(bat, dict) and "value" in bat:
+            if isinstance(bat, dict):
+                battery_value = bat.get("value")
+
+            # G3/HTG3 structure
+            if battery_value is None:
+                dp_block = _find_status_block(status, "devicepower:")
+                if isinstance(dp_block, dict):
+                    battery = dp_block.get("battery")
+                    if isinstance(battery, dict):
+                        battery_value = battery.get("percent")
+
+    
+            if battery_value is not None:
                 entities.append(
                     ShellyCloud2Sensor(
                         hub=hub,
@@ -133,8 +169,15 @@ async def async_setup_entry(
                 )
 
         # Wi-Fi RSSI
+        rssi_found = False
         wifi_sta = status.get("wifi_sta")
         if isinstance(wifi_sta, dict) and "rssi" in wifi_sta:
+            rssi_found = True
+        else:
+            wifi = status.get("wifi")
+            if isinstance(wifi, dict) and "rssi" in wifi: 
+                rssi_found = True
+        if rssi_found:
             entities.append(
                 ShellyCloud2Sensor(
                     hub=hub,
@@ -148,20 +191,6 @@ async def async_setup_entry(
                 )
             )
 
-        # Uptime
-        if "uptime" in status:
-            entities.append(
-                ShellyCloud2Sensor(
-                    hub=hub,
-                    device_id=dev_id,
-                    kind="uptime",
-                    name_suffix="Uptime",
-                    device_class=SensorDeviceClass.DURATION,
-                    state_class=SensorStateClass.MEASUREMENT,
-                    unit=UnitOfTime.SECONDS,
-                    entity_category=EntityCategory.DIAGNOSTIC,
-                )
-            )
 
         # Last update timestamp
         if "_updated" in status or "_updated" in state.get("settings", {}):
@@ -177,6 +206,8 @@ async def async_setup_entry(
                     entity_category=EntityCategory.DIAGNOSTIC,
                 )
             )
+
+
 
     if entities:
         async_add_entities(entities)
@@ -223,14 +254,22 @@ class ShellyCloud2Sensor(CoordinatorEntity, SensorEntity):
         state = (self.coordinator.data or {}).get(self._device_id) or {}
         status = state.get("status", {})
 
+        
         if self._kind == "temperature":
             if "temperature" in status:
                 return status.get("temperature")
             tmp = status.get("tmp")
-            if isinstance(tmp, Dict):
-                return tmp.get("tC")
-            return None
+            if isinstance(tmp, dict):
+                tC = tmp.get("tC")
+                if tC is not None:
+                    return tC
 
+            temp_block = _find_status_block(status, "temperature:")
+            if temp_block:
+                return temp_block.get("tC")
+
+            return None
+     
         if self._kind in ("power", "energy"):
             meters = status.get("meters")
             if not isinstance(meters, list) or not meters:
@@ -248,11 +287,26 @@ class ShellyCloud2Sensor(CoordinatorEntity, SensorEntity):
                     return None
             return None
 
+        # Humidity
+        if self._kind == "humidity":
+            hum_block = _find_status_block(status, "humidity:")
+            if hum_block:
+                return hum_block.get("rh")
+            return None        
+        
         if self._kind == "battery":
             bat = status.get("bat")
-            if not isinstance(bat, Dict):
-                return None
-            return bat.get("value")
+            if isinstance(bat, dict) and "value" in bat:
+                return bat.get("value")
+
+            dp_block = _find_status_block(status, "devicepower:")
+            if dp_block:
+                battery = dp_block.get("battery")
+                if isinstance(battery, dict):
+                    return battery.get("percent")
+
+            return None
+
 
         if self._kind == "illuminance":
             lux = status.get("lux")
@@ -262,12 +316,17 @@ class ShellyCloud2Sensor(CoordinatorEntity, SensorEntity):
 
         if self._kind == "rssi":
             wifi_sta = status.get("wifi_sta")
-            if not isinstance(wifi_sta, Dict):
-                return None
-            return wifi_sta.get("rssi")
+            if isinstance(wifi_sta, dict) and "rssi" in wifi_sta:
+                return wifi_sta.get("rssi")
 
-        if self._kind == "uptime":
-            return status.get("uptime")
+            wifi = status.get("wifi")
+            if isinstance(wifi, dict):
+                return wifi.get("rssi")
+            
+            return None
+            
+
+
 
         if self._kind == "last_update":
             ts_str = status.get("_updated")
