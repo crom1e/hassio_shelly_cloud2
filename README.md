@@ -12,6 +12,24 @@ monitor and control multiple devices under the same account.
   - `sensor` — power, energy, temperature, battery, illuminance and diagnostic data
   - `binary_sensor` — door/window state for supported sensor devices
 
+## Installation
+
+[![Quick installation link](https://my.home-assistant.io/badges/hacs_repository.svg)][my-hacs]
+
+Recommended installation is through [HACS][hacs]:
+
+1. Either [use this link][my-hacs], or navigate to HACS integration and:
+   - 'Explore & Download Repositories'
+   - Search for 'Shelly Cloud 2'
+   - Download
+2. Restart Home Assistant
+3. Go to Settings > Devices and Services > Add Integration
+4. Search for and select 'Shelly Cloud 2' (If the integration is not found, empty your browser cache and reload the page)
+5. Proceed with the configuration
+
+ 
+
+
 ## Sensors per relay/plug device
 
 For each configured relay/plug device (where the data is present), the integration exposes:
@@ -66,3 +84,7 @@ Additional sensors:
 All entities belonging to the same Shelly device are grouped under a single Home
 Assistant device using the device registry, with identifiers based on the Shelly
 device id and model/firmware taken from the Cloud API.
+---
+
+[hacs]: https://hacs.xyz
+[my-hacs]: https://my.home-assistant.io/redirect/hacs_repository/?owner=crom1e&repository=hassio_shelly_cloud2&category=integration
