@@ -1,9 +1,8 @@
 {
   "domain": "shelly_cloud2",
   "name": "Shelly Cloud 2",
-  "version": "0.4.4",
+  "version": "0.4.1",
   "documentation": "https://github.com/crom1e/hassio_shelly_cloud2",
-  "issue_tracker": "https://github.com/crom1e/hassio_shelly_cloud2/issues",
   "requirements": [],
   "codeowners": [
     "@crom1e"
